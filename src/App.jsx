@@ -6,17 +6,20 @@ import "./App.css";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 console.log(supabaseUrl);
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const productsUrl = `${supabaseUrl}/rest/v1/products`;
+const productsUrl = `${supabaseUrl}/rest/v1/products-test`;
 
 function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   //GET
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoading(true);
+        setLoadError('');
         const response = await fetch(productsUrl, {
           method: "GET",
           headers: {
@@ -34,7 +37,7 @@ function App() {
         console.log(data);
         setProducts(data);
       } catch (err) {
-        setError(err.message);
+        setLoadError(err.message);
       } finally {
         setLoading(false);
       }
@@ -43,8 +46,6 @@ function App() {
     fetchProducts();
   }, []);
 
-  if (loading) return <p>Loading products...</p>;
-  if (error) return <p>Error: {error}</p>;
 
 //POST
   const onAddProduct = async (newProductData) => {
@@ -74,8 +75,10 @@ function App() {
         : createdProduct;
 
       setProducts((currentProducts) => [...currentProducts, newProduct]);
+      return true;
     } catch (err) {
-      setError(err.message);
+      setActionError(err.message);
+      return false;
     }
   };
 
@@ -112,7 +115,7 @@ function App() {
         )
       );
     } catch (err) {
-      setError(err.message);
+      setActionError(err.message);
     }
   };
 
@@ -123,7 +126,7 @@ function App() {
       if (!productToUpdate) return;
 
       const newQuantity = Math.max(0, productToUpdate.quantity - 1);
-
+      if (newQuantity===0) return;
       const response = await fetch(`${productsUrl}?id=eq.${id}`, {
         method: "PATCH",
         headers: {
@@ -151,7 +154,7 @@ function App() {
         )
       );
     } catch (err) {
-      setError(err.message);
+      setActionError(err.message);
     }
   };
 
@@ -192,7 +195,7 @@ function App() {
         )
       );
     } catch (err) {
-      setError(err.message);
+      setActionError(err.message);
     }
   };
 
@@ -218,7 +221,7 @@ const onRemove = async (id) => {
         (product) => product.id !== id
       ));
     }catch (err) {
-      setError(err.message);
+      setActionError(err.message);
     }
 }
 
@@ -227,13 +230,28 @@ const onRemove = async (id) => {
       <h1>Product Inventory Manager</h1>
      
       <ProductForm onAddProduct={onAddProduct} />
-       <ProductList
+      {
+        actionError && (
+          <p>
+            Error : {actionError}
+          </p>
+        )
+      }
+      {
+        loading ? (
+          <p>Loading.....</p> 
+        ) : loadError ? (
+          <p>Error: {loadError}</p>
+        ) : (
+        <ProductList
         products={products}
         onIncrease={onIncrease}
         onDecrease={onDecrease}
         onToggleStatus={onToggleStatus}
         onRemove={onRemove}
       />
+        )
+      }
       
     </div>
   );
