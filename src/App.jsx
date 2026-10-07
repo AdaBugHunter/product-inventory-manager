@@ -2,39 +2,24 @@ import { useEffect, useState } from "react";
 import ProductList from "./components/ProductList";
 import ProductForm from "./components/ProductForm";
 import "./App.css";
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-console.log(supabaseUrl);
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const productsUrl = `${supabaseUrl}/rest/v1/products-test`;
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "./services/productApi";
 
 function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [actionError, setActionError] = useState('');
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   //GET
   useEffect(() => {
-    const fetchProducts = async () => {
+    const loadProducts = async () => {
       try {
-        setLoading(true);
-        setLoadError('');
-        const response = await fetch(productsUrl, {
-          method: "GET",
-          headers: {
-            apikey: supabaseKey,
-            "Content-Type": "application/json",
-            Prefer: "return=representation",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch products");
-        }
-
-        const data = await response.json();
-        console.log(data);
+        const data = await getProducts();
         setProducts(data);
       } catch (err) {
         setLoadError(err.message);
@@ -43,41 +28,29 @@ function App() {
       }
     };
 
-    fetchProducts();
+    loadProducts();
   }, []);
 
-
-//POST
+  //POST
   const onAddProduct = async (newProductData) => {
     try {
-      const response = await fetch(productsUrl, {
-        method: "POST",
-        headers: {
-          apikey: supabaseKey,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          name: newProductData.name,
-          category: newProductData.category,
-          quantity: Number(newProductData.quantity),
-          is_available: true,
-        }),
-      });
+      setActionError("");
 
-      if (!response.ok) {
-        throw new Error("Failed to add product");
-      }
+      const productData = {
+        name: newProductData.name,
+        category: newProductData.category,
+        quantity: newProductData.quantity,
+        is_available: true,
+      };
 
-      const createdProduct = await response.json();
-      const newProduct = Array.isArray(createdProduct)
-        ? createdProduct[0]
-        : createdProduct;
+      const createdProduct = await createProduct(productData);
 
-      setProducts((currentProducts) => [...currentProducts, newProduct]);
+      setProducts((currentProducts) => [...currentProducts, createdProduct]);
+
       return true;
-    } catch (err) {
-      setActionError(err.message);
+    } catch (error) {
+      setActionError(error.message);
+
       return false;
     }
   };
@@ -85,174 +58,121 @@ function App() {
   //PATCH on Increase
   const onIncrease = async (id) => {
     try {
+      setActionError("");
+
       const productToUpdate = products.find((product) => product.id === id);
-      if (!productToUpdate) return;
-
-      const response = await fetch(`${productsUrl}?id=eq.${id}`, {
-        method: "PATCH",
-        headers: {
-          apikey: supabaseKey,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          quantity: productToUpdate.quantity + 1,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to increase product");
+      if (!productToUpdate) {
+        return;
       }
+      if (!productToUpdate.is_available) {
+        return;
+      }
+      const newQuantity = productToUpdate.quantity + 1;
 
-      const updatedProduct = await response.json();
-      const normalizedProduct = Array.isArray(updatedProduct)
-        ? updatedProduct[0]
-        : updatedProduct;
-
+      const updatedProduct = await updateProduct(productToUpdate.id, {
+        quantity: newQuantity,
+      });
       setProducts((currentProducts) =>
-        currentProducts.map((product) =>
-          product.id === normalizedProduct.id ? normalizedProduct : product
-        )
+        currentProducts.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
       );
-    } catch (err) {
-      setActionError(err.message);
+    } catch (error) {
+      setActionError(error.message);
     }
   };
 
   //PATCH on Decrease
   const onDecrease = async (id) => {
-    try {
-      const productToUpdate = products.find((product) => product.id === id);
-      if (!productToUpdate) return;
+    const productToDecrease = products.find((product) => product.id === id);
+    if (!productToDecrease) {
+      return;
+    }
+    if (productToDecrease.quantity === 0) {
+      return;
+    }
+    if (!productToDecrease.is_available) {
+      return;
+    }
 
-      const newQuantity = Math.max(0, productToUpdate.quantity - 1);
-      if (newQuantity===0) return;
-      const response = await fetch(`${productsUrl}?id=eq.${id}`, {
-        method: "PATCH",
-        headers: {
-          apikey: supabaseKey,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          quantity: newQuantity,
-        }),
+    try {
+      setActionError("");
+
+      const newQuantity = productToDecrease.quantity - 1;
+
+      const updatedProduct = await updateProduct(productToDecrease.id, {
+        quantity: newQuantity,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to decrease product");
-      }
-
-      const updatedProduct = await response.json();
-      const normalizedProduct = Array.isArray(updatedProduct)
-        ? updatedProduct[0]
-        : updatedProduct;
-
       setProducts((currentProducts) =>
-        currentProducts.map((product) =>
-          product.id === normalizedProduct.id ? normalizedProduct : product
-        )
+        currentProducts.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
       );
-    } catch (err) {
-      setActionError(err.message);
+    } catch (error) {
+      setActionError(error.message);
     }
   };
 
-
   //PATCH TOGGLE STATUS
   const onToggleStatus = async (id) => {
+    const toggleStatus = products.find((product) => product.id === id);
+    if (!toggleStatus) {
+      return;
+    }
     try {
-      const productToUpdate = products.find((product) => product.id === id);
-      console.log(productToUpdate);
-      if (!productToUpdate) return;
+      setActionError("");
 
-      const newStatus = !productToUpdate.is_available;
-      console.log(newStatus);
-      const response = await fetch(`${productsUrl}?id=eq.${id}`, {
-        method: "PATCH",
-        headers: {
-          apikey: supabaseKey,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({
-          is_available: newStatus,
-        }),
+      const newStatus = !toggleStatus.is_available;
+
+      const updatedProduct = await updateProduct(toggleStatus.id, {
+        is_available: newStatus,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update the status");
-      }
-
-      const updatedProduct = await response.json();
-      const normalizedProduct = Array.isArray(updatedProduct)
-        ? updatedProduct[0]
-        : updatedProduct;
-
       setProducts((currentProducts) =>
-        currentProducts.map((product) =>
-          product.id === normalizedProduct.id ? normalizedProduct : product
-        )
+        currentProducts.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
       );
-    } catch (err) {
-      setActionError(err.message);
+    } catch (error) {
+      setActionError(error.message);
     }
   };
 
   //DELETE
-const onRemove = async (id) => {
-  try{
-     const productToDelete = products.find((product) => product.id === id);
-      if (!productToDelete) return;
+  const onRemove = async (id) => {
+    try {
+      setActionError("");
 
-      const response = await fetch(`${productsUrl}?id=eq.${id}`, {
-        method: "DELETE",
-        headers: {
-          apikey: supabaseKey,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-      });
-        if (!response.ok) {
-        throw new Error("Failed to update the status");
-      }
+      await deleteProduct(id);
+
       setProducts((currentProducts) =>
-      currentProducts.filter(
-        (product) => product.id !== id
-      ));
-    }catch (err) {
-      setActionError(err.message);
+        currentProducts.filter((product) => product.id !== id),
+      );
+    } catch (error) {
+      setActionError(error.message);
     }
-}
+  };
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h1>Product Inventory Manager</h1>
-     
+
       <ProductForm onAddProduct={onAddProduct} />
-      {
-        actionError && (
-          <p>
-            Error : {actionError}
-          </p>
-        )
-      }
-      {
-        loading ? (
-          <p>Loading.....</p> 
-        ) : loadError ? (
-          <p>Error: {loadError}</p>
-        ) : (
+      {actionError && <p>Error : {actionError}</p>}
+      {loading ? (
+        <p>Loading.....</p>
+      ) : loadError ? (
+        <p>Error: {loadError}</p>
+      ) : (
         <ProductList
-        products={products}
-        onIncrease={onIncrease}
-        onDecrease={onDecrease}
-        onToggleStatus={onToggleStatus}
-        onRemove={onRemove}
-      />
-        )
-      }
-      
+          products={products}
+          onIncrease={onIncrease}
+          onDecrease={onDecrease}
+          onToggleStatus={onToggleStatus}
+          onRemove={onRemove}
+        />
+      )}
     </div>
   );
 }
