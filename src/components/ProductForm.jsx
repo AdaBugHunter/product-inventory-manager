@@ -5,7 +5,7 @@ function ProductForm({ onAddProduct }) {
   const [category, setCategory] = useState("");
   const [quantity, setQuantity] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!name.trim() || !category.trim() || quantity === "") {
@@ -13,11 +13,15 @@ function ProductForm({ onAddProduct }) {
       return;
     }
 
-    onAddProduct({
+    const response = await onAddProduct({
       name: name.trim(),
       category: category.trim(),
       quantity: Number(quantity),
     });
+    if (!response){
+      return;
+    }
+    
 
     // reset form
     setName("");

@@ -13,8 +13,8 @@ function InventoryProductCard({
 
       <p>
         Status:{" "}
-        <strong style={{ color: product.isAvailable ? "green" : "red" }}>
-          {product.isAvailable ? "Available" : "Out of Stock"}
+        <strong style={{ color: product.is_available ? "green" : "red" }}>
+          {product.is_available ? "Available" : "Out of Stock"}
         </strong>
       </p>
 
@@ -22,7 +22,7 @@ function InventoryProductCard({
         <button onClick={() => onIncrease(product.id)}>+</button>
         <button onClick={() => onDecrease(product.id)}>−</button>
         <button onClick={() => onToggleStatus(product.id)}>
-          {product.isAvailable ? "Mark Out of Stock" : "Mark Available"}
+          {product.is_available ? "Mark Out of Stock" : "Mark Available"}
         </button>
         <button onClick={() => onRemove(product.id)}>Remove</button>
       </div>

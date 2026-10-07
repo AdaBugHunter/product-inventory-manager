@@ -1,73 +1,178 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ProductList from "./components/ProductList";
 import ProductForm from "./components/ProductForm";
+import "./App.css";
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "./services/productApi";
 
 function App() {
-  const [products, setProducts] = useState([
-    { id: 1, name: "Chocolate Cupcake", category: "Cupcake", quantity: 4, isAvailable: true },
-    { id: 2, name: "Vanilla Cupcake", category: "Cupcake", quantity: 0, isAvailable: false },
-    { id: 3, name: "Red Velvet Cake", category: "Cake", quantity: 5, isAvailable: true },
-  ]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
-  // ADD
-  const addProduct = (newProductData) => {
-    const newProduct = {
-      id: Date.now(),
-      name: newProductData.name,
-      category: newProductData.category,
-      quantity: newProductData.quantity,
-      isAvailable: true,
+  //GET
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const data = await getProducts();
+        setProducts(data);
+      } catch (err) {
+        setLoadError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
-    setProducts((prev) => [...prev, newProduct]);
+
+    loadProducts();
+  }, []);
+
+  //POST
+  const onAddProduct = async (newProductData) => {
+    try {
+      setActionError("");
+
+      const productData = {
+        name: newProductData.name,
+        category: newProductData.category,
+        quantity: newProductData.quantity,
+        is_available: true,
+      };
+
+      const createdProduct = await createProduct(productData);
+
+      setProducts((currentProducts) => [...currentProducts, createdProduct]);
+
+      return true;
+    } catch (error) {
+      setActionError(error.message);
+
+      return false;
+    }
   };
 
-  // INCREASE
-  const increaseQty = (id) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, quantity: p.quantity + 1 } : p
-      )
-    );
+  //PATCH on Increase
+  const onIncrease = async (id) => {
+    try {
+      setActionError("");
+
+      const productToUpdate = products.find((product) => product.id === id);
+      if (!productToUpdate) {
+        return;
+      }
+      if (!productToUpdate.is_available) {
+        return;
+      }
+      const newQuantity = productToUpdate.quantity + 1;
+
+      const updatedProduct = await updateProduct(productToUpdate.id, {
+        quantity: newQuantity,
+      });
+      setProducts((currentProducts) =>
+        currentProducts.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
+      );
+    } catch (error) {
+      setActionError(error.message);
+    }
   };
 
-  // DECREASE
-  const decreaseQty = (id) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, quantity: p.quantity > 0 ? p.quantity - 1 : 0 }
-          : p
-      )
-    );
+  //PATCH on Decrease
+  const onDecrease = async (id) => {
+    const productToDecrease = products.find((product) => product.id === id);
+    if (!productToDecrease) {
+      return;
+    }
+    if (productToDecrease.quantity === 0) {
+      return;
+    }
+    if (!productToDecrease.is_available) {
+      return;
+    }
+
+    try {
+      setActionError("");
+
+      const newQuantity = productToDecrease.quantity - 1;
+
+      const updatedProduct = await updateProduct(productToDecrease.id, {
+        quantity: newQuantity,
+      });
+
+      setProducts((currentProducts) =>
+        currentProducts.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
+      );
+    } catch (error) {
+      setActionError(error.message);
+    }
   };
 
-  // TOGGLE STATUS
-  const toggleStatus = (id) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, isAvailable: !p.isAvailable } : p
-      )
-    );
+  //PATCH TOGGLE STATUS
+  const onToggleStatus = async (id) => {
+    const toggleStatus = products.find((product) => product.id === id);
+    if (!toggleStatus) {
+      return;
+    }
+    try {
+      setActionError("");
+
+      const newStatus = !toggleStatus.is_available;
+
+      const updatedProduct = await updateProduct(toggleStatus.id, {
+        is_available: newStatus,
+      });
+
+      setProducts((currentProducts) =>
+        currentProducts.map((item) =>
+          item.id === updatedProduct.id ? updatedProduct : item,
+        ),
+      );
+    } catch (error) {
+      setActionError(error.message);
+    }
   };
 
-  // REMOVE
-  const removeProduct = (id) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+  //DELETE
+  const onRemove = async (id) => {
+    try {
+      setActionError("");
+
+      await deleteProduct(id);
+
+      setProducts((currentProducts) =>
+        currentProducts.filter((product) => product.id !== id),
+      );
+    } catch (error) {
+      setActionError(error.message);
+    }
   };
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial" }}>
       <h1>Product Inventory Manager</h1>
 
-      <ProductForm onAddProduct={addProduct} />
-
-      <ProductList
-        products={products}
-        onIncrease={increaseQty}
-        onDecrease={decreaseQty}
-        onToggleStatus={toggleStatus}
-        onRemove={removeProduct}
-      />
+      <ProductForm onAddProduct={onAddProduct} />
+      {actionError && <p>Error : {actionError}</p>}
+      {loading ? (
+        <p>Loading.....</p>
+      ) : loadError ? (
+        <p>Error: {loadError}</p>
+      ) : (
+        <ProductList
+          products={products}
+          onIncrease={onIncrease}
+          onDecrease={onDecrease}
+          onToggleStatus={onToggleStatus}
+          onRemove={onRemove}
+        />
+      )}
     </div>
   );
 }
