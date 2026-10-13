@@ -1,53 +1,71 @@
-import { useState } from "react";
+import {useState} from 'react'
 
-function ProductForm({ onAddProduct }) {
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
-  const [quantity, setQuantity] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+function ProductForm({onAddProduct}) {
 
-    if (!name.trim() || !category.trim() || quantity === "") {
-      alert("Please fill all fields");
+  const [formData, setFormData] = useState({
+      name : "",
+      category : "",
+      quantity : ""
+    })
+  const handleChange = (event) => {
+    const {value, name} = event.target;
+    setFormData((currentFormData)=>({
+      ...currentFormData,
+      [name]: value
+    }))
+  }  
+  const handleSubmit = async(event) => {
+    event.preventDefault();
+    const productData = {
+      name : formData.name,
+      category : formData.category,
+      quantity : Number(formData.quantity),
+      is_available : Number(formData.quantity) > 0
+    }
+    const success = await onAddProduct(productData);
+    console.log("success", success)
+    if(!success){
       return;
     }
-
-    onAddProduct({
-      name: name.trim(),
-      category: category.trim(),
-      quantity: Number(quantity),
-    });
-
-    // reset form
-    setName("");
-    setCategory("");
-    setQuantity("");
-  };
-
+    setFormData({
+      name : "",
+      category : "",
+      quantity : ""
+    })
+  }
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Product name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="Category"
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-      />
-      <input
-        type="number"
-        placeholder="Quantity"
-        value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
-      />
-      <button type="submit">Add Product</button>
-    </form>
-  );
+    <div>
+       <form onSubmit={handleSubmit}>
+        <label htmlFor="product.name">Product Name: </label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        <label htmlFor="product.category">Product Category: </label>
+        <input
+          type="text"
+          name="category"
+          value={formData.category}
+          onChange={handleChange}
+          required
+        />
+        <label htmlFor="product.quantity">Quantity: </label>
+        <input
+          type="number"
+          name="quantity"
+          value={formData.quantity}
+          min="0"
+          onChange={handleChange}
+          required
+        />
+        <button type="submit">Add Product</button>
+      </form>
+    </div>
+  )
 }
 
-export default ProductForm;
+export default ProductForm
