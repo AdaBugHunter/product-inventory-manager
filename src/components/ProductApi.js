@@ -6,6 +6,24 @@ const headers = {
     apikey: supabaseKey,
     "Content-Type": "application/json",
 }
+
+//VIEW SINGLE PRODUCT
+export const viewProduct = async (id) => {
+   const response = await fetch(`${productsUrl}?id=eq.${id}&select=*`,
+            {
+                method : "GET",
+                headers : {
+                    apikey:supabaseKey,
+                    "Content-Type" : "application/json"
+                }
+            }
+        )
+        if(!response.ok){
+            throw new Error("Failed to fetch product detail")
+        }
+        const data = await response.json();
+        return data[0];
+}
 //GET METHOD
 export const getProducts = async() => {
     const response = await fetch(`${productsUrl}?select=*`, {

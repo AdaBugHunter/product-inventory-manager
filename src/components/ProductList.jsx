@@ -1,3 +1,5 @@
+import { useNavigate } from "react-router"
+
 function ProductList({
   products,
   onRemove,
@@ -5,6 +7,7 @@ function ProductList({
   onDecrease,
   toggleStatus,
 }) {
+  const navigate = useNavigate();
   return (
     <div>
       {products.map((product) => (
@@ -43,6 +46,12 @@ function ProductList({
               onClick={() => onRemove(product.id)}
             >
               Remove
+            </button>
+            <button
+            type="button"
+            onClick={() => navigate(`/product/${product.id}`)}
+            >
+            View Product
             </button>
           </div>
         </div>
