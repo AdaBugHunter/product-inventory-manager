@@ -37,6 +37,24 @@ export const createProduct = async (productData) => {
       return data[0];
 }
 
+//PATCH METHOD
+export const updateProduct = async (id,update) => {
+   const response = await fetch(`${productsUrl}?id=eq.${id}`, {
+        method: "PATCH",
+        headers: {
+          apikey: supabaseKey,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(update),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update the quantity");
+      }
+      const data = await response.json();
+      return data[0];
+}
+
 //DELETE METHOD
 export const deleteProduct = async (id) => {
     const response = await fetch(`${productsUrl}?id=eq.${id}`,

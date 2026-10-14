@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 // import ProductForm from "./components/ProductForm";
-import { createProduct, deleteProduct, getProducts } from "./components/ProductApi";
+import { createProduct, deleteProduct, getProducts, updateProduct } from "./components/ProductApi";
 import ProductForm from "./components/ProductForm";
 import ProductList from "./components/ProductList";
 
@@ -44,121 +44,84 @@ function App() {
       // setActionLoading(false)
     }
   };
+
+  //Replace the status
+  const replaceProduct = (updatedProduct) => {
+     setProducts((currentProduct) =>
+        currentProduct.map((product) =>
+          product.id === updatedProduct.id ? updatedProduct : product,
+        ),
+      );
+  }
   //PATCH
-  // const onIncrease = async (id) => {
-  //   try {
-  //     setLoading(true);
-  //     const productToUpdate = products.find((product) => product.id === id);
-  //     if (!productToUpdate) {
-  //       return;
-  //     }
-  //     const newQuantity = productToUpdate.quantity + 1;
-  //     const response = await fetch(`${productsUrl}?id=eq.${id}`, {
-  //       method: "PATCH",
-  //       headers: {
-  //         apikey: supabaseKey,
-  //         "Content-Type": "application/json",
-  //         Prefer: "return=representation",
-  //       },
-  //       body: JSON.stringify({
-  //         quantity: newQuantity,
-  //         is_available: newQuantity>0 
-  //       }),
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error("Failed to update the quantity");
-  //     }
-  //     const data = await response.json();
-  //     setProducts((currentProduct) =>
-  //       currentProduct.map((product) =>
-  //         product.id === data[0].id ? data[0] : product,
-  //       ),
-  //     );
-  //   } catch (error) {
-  //     setActionError(error.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  // const onDecrease = async (id) => {
-  //   try {
-  //     setLoading(true);
-  //     const productToDecrease = products.find((product) => product.id === id);
-  //     if (!productToDecrease) {
-  //       return;
-  //     }
-  //     if (productToDecrease.quantity <= 0) {
-  //       return;
-  //     }
-  //     const newQuantity = productToDecrease.quantity - 1;
-  //     const update = {
-  //       quantity : newQuantity
-  //     }
-  //     if(newQuantity===0){
-  //       update.is_available=false
-  //     }
-  //     console.log("update",update);
-  //     const response = await fetch(`${productsUrl}?id=eq.${id}`, {
-  //       method: "PATCH",
-  //       headers: {
-  //         apikey: supabaseKey,
-  //         "Content-Type": "application/json",
-  //         Prefer: "return=representation",
-  //       },
-  //       body: JSON.stringify(
-  //         update
-  //      ),
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error("Failed to decrease product");
-  //     }
-  //     const data = await response.json();
-  //     setProducts((currentProduct) =>
-  //       currentProduct.map((product) =>
-  //         product.id === data[0].id ? data[0] : product,
-  //       ),
-  //     );
-  //   } catch (error) {
-  //     setActionError(error.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-  // const toggleStatus = async (id) => {
-  //   try {
-  //     setLoading(true);
-  //     const productToUpdate = products.find((product)=>product.id===id)
-  //     if(!productToUpdate)
-  //     {
-  //       return;
-  //     }
-  //     const newStatus = !productToUpdate.is_available;
-  //     const response = await fetch(`${productsUrl}?id=eq.${id}`,
-  //       {
-  //         method : "PATCH",
-  //         headers:{
-  //           apikey : supabaseKey,
-  //           "Content-Type":"application/json",
-  //           Prefer : "return=representation"
-  //         },
-  //         body: JSON.stringify({
-  //           is_available: newStatus
-  //         })
-  //       } 
-  //     )
-  //     if(!response.ok){
-  //       throw new Error("Failed to update product Status")
-  //     }
-  //     const data = await response.json();
-  //     setProducts((currentProduct)=>currentProduct.map((product)=>
-  //     product.id===data[0].id ? data[0] : product 
-  //     ))
-  //   } catch (error) {
-  //     setActionError(error.message)
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // } 
+  const onIncrease = async (id) => {
+    try {
+      setLoading(true);
+      const productToUpdate = products.find((product) => product.id === id);
+      if (!productToUpdate) {
+        return;
+      }
+      const newQuantity = productToUpdate.quantity + 1;
+      const updatedProduct = await updateProduct(id,
+        {
+          quantity: newQuantity,
+          is_available: newQuantity > 0 
+        });
+     replaceProduct(updatedProduct);
+    } catch (error) {
+      setActionError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  //Decrease quantity
+  const onDecrease = async (id) => {
+    try {
+      setLoading(true);
+      const productToDecrease = products.find((product) => product.id === id);
+      if (!productToDecrease) {
+        return;
+      }
+      if (productToDecrease.quantity <= 0) {
+        return;
+      }
+      const newQuantity = productToDecrease.quantity - 1;
+      const update = {
+        quantity : newQuantity
+      }
+      if(newQuantity===0){
+        update.is_available=false
+      }
+      const updatedProduct = await updateProduct(id,update);
+      replaceProduct(updatedProduct);
+    } catch (error) {
+      setActionError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  //Toggle status 
+  const toggleStatus = async (id) => {
+    try {
+      setLoading(true);
+      const productToUpdate = products.find((product)=>product.id===id)
+      if(!productToUpdate)
+      {
+        return;
+      }
+      const newStatus = !productToUpdate.is_available;
+      const toggleStatusUpdate = await updateProduct(id,
+        {
+          is_available : newStatus
+        }
+      )
+      replaceProduct(toggleStatusUpdate);
+    } catch (error) {
+      setActionError(error.message)
+    } finally {
+      setLoading(false);
+    }
+  } 
 
   //DELETE
   const onRemove = async (id) => {
@@ -192,7 +155,10 @@ function App() {
         <p>{error}</p>
       ) : (
      <ProductList products={products}
-     onRemove={onRemove}/>
+     onRemove={onRemove}
+     onIncrease={onIncrease}
+     onDecrease={onDecrease}
+     toggleStatus={toggleStatus}/>
       )}
     </div>
   );

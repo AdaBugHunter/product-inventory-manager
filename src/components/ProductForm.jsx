@@ -24,7 +24,6 @@ function ProductForm({onAddProduct}) {
       is_available : Number(formData.quantity) > 0
     }
     const success = await onAddProduct(productData);
-    console.log("success", success)
     if(!success){
       return;
     }
